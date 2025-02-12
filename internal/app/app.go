@@ -7,6 +7,7 @@ import (
 	"avito-shop/internal/logger"
 	"avito-shop/internal/repository"
 	"avito-shop/internal/service"
+	"go.uber.org/zap"
 	"log"
 	"os"
 	"os/signal"
@@ -16,15 +17,16 @@ import (
 func RunApp() {
 	cfg := config.MustLoad()
 
+	// Инициализация лог
+	logs := logger.NewLogger()
+	logs.Info("Logger initialized")
+
 	// Подключение к бд
 	db, err := storage.InitPostgres(cfg)
 	if err != nil {
+		logs.Error("Failed to connect to database", zap.Error(err))
 		log.Fatalf("failed to connect to database: %v", err)
 	}
-
-	// Инициализация логера
-	logs := logger.NewLogger()
-	logs.Info("Logger initialized")
 
 	// Инициализация репозиториев
 	repoAuth := repository.NewAuthRepo(db, logs)

@@ -24,17 +24,19 @@ func NewAuthRepo(db *sql.DB, logger logger.Logger) *AuthRepo {
 	}
 }
 
-func (r *AuthRepo) GetUserId(ctx context.Context, username string, password string) (int, error) {
+func (r *AuthRepo) GetUser(ctx context.Context, username string, password string) (int, error) {
 	var id int
 
 	query := `SELECT id FROM users WHERE username = $1 AND password_hash = $2`
 
-	err := r.db.QueryRowContext(ctx, query, username).Scan(&id)
+	err := r.db.QueryRowContext(ctx, query, username, password).Scan(&id)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			r.logger.Error("No rows in sql for id")
 			return 0, sql.ErrNoRows
 		}
+		r.logger.Error("Database error: get user id", zap.Error(err))
+		return 0, fmt.Errorf("database error: %w", err)
 	}
 
 	return id, nil
@@ -49,7 +51,7 @@ func (r *AuthRepo) CreateUser(ctx context.Context, user domain.User) (int, error
 	err := r.db.QueryRowContext(ctx, query,
 		user.Username,
 		user.PasswordHash,
-		user.Coins,
+		1000,
 	).Scan(&id)
 
 	if err != nil {

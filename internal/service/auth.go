@@ -77,7 +77,7 @@ func (s *AuthService) registerUser(ctx context.Context, dto model.AuthRequestDTO
 		}
 		s.logger.Error("error email create user",
 			zap.String("operation", "service.CreateUser"))
-		return 0, err
+		return 0, fmt.Errorf("registration failed: %w", err)
 	}
 
 	s.logger.Info("user created successfully")

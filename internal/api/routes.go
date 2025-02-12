@@ -30,7 +30,7 @@ func (r *Api) InitRoutes() *gin.Engine {
 		{
 			protected.GET("/info")
 			protected.POST("/sendCoin", r.SendCoin) // сделано
-			protected.GET("/buy/:item", r.BuyItem)  // сделано
+			protected.POST("/buy/:item", r.BuyItem) // сделано
 		}
 	}
 

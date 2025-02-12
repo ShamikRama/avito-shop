@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"github.com/pressly/goose"
+	"log"
 
 	_ "github.com/lib/pq"
 )
@@ -12,11 +13,13 @@ import (
 func InitPostgres(cfg *config.Config) (*sql.DB, error) {
 	db, err := sql.Open("postgres", cfg.PgcConnString)
 	if err != nil {
+		log.Fatal("Error open connection to db")
 		return nil, fmt.Errorf("storage.psql.New: failed to open database connection: %w", err)
 	}
 
 	err = db.Ping()
 	if err != nil {
+		log.Fatal("Error ping database")
 		return nil, fmt.Errorf("storage.psql.New: failed to ping database: %w", err)
 	}
 

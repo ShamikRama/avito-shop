@@ -3,7 +3,6 @@ package utils
 import (
 	"avito-shop/internal/domain"
 	"avito-shop/internal/model"
-	"time"
 )
 
 // AuthRequestDTO -> domain.User (для регистрации)
@@ -26,7 +25,6 @@ func SendCoinRequestToTransaction(dto model.SendCoinRequestDTO, fromUserID uint)
 	return domain.Transaction{
 		FromUserID: fromUserID,
 		Amount:     dto.Amount,
-		CreatedAt:  time.Now(),
 	}
 }
 
@@ -44,7 +42,6 @@ func TransactionToHistoryDTO(t domain.Transaction, fromUsername, toUsername stri
 		FromUser: fromUsername,
 		ToUser:   toUsername,
 		Amount:   t.Amount,
-		DateTime: t.CreatedAt.Format(time.RFC3339),
 	}
 }
 
