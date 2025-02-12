@@ -1,6 +1,7 @@
 package service
 
 import (
+	"avito-shop/internal/domain"
 	"avito-shop/internal/erorrs"
 	"avito-shop/internal/logger"
 	"avito-shop/internal/model"
@@ -11,10 +12,10 @@ import (
 )
 
 type RepoUserInterface interface {
-	BuyItem(ctx context.Context, userID int, itemID int, price int) error
+	BuyItem(ctx context.Context, userID int, item domain.Item) error
 	SendCoins(ctx context.Context, fromUserID int, toUserID int, amount int) error
 	GetUserID(ctx context.Context, username string) (int, error)
-	GetItemID(ctx context.Context, itemName string) (int, int, error)
+	GetItem(ctx context.Context, itemName string) (domain.Item, error)
 }
 
 type UserService struct {
@@ -60,7 +61,7 @@ func (s *UserService) SendCoinToUser(ctx context.Context, fromUserID int, toUser
 }
 
 func (s *UserService) BuyItem(ctx context.Context, userID int, input model.BuyItemRequestDTO) error {
-	itemID, priceItem, err := s.repo.GetItemID(ctx, input.Item)
+	item, err := s.repo.GetItem(ctx, input.Item)
 	if err != nil {
 		if errors.Is(err, erorrs.ErrNotFound) {
 			s.logger.Error("item not found",
@@ -70,7 +71,7 @@ func (s *UserService) BuyItem(ctx context.Context, userID int, input model.BuyIt
 		return fmt.Errorf("buy item: %w", err)
 	}
 
-	err = s.repo.BuyItem(ctx, userID, itemID, priceItem)
+	err = s.repo.BuyItem(ctx, userID, item)
 	if err != nil {
 		if errors.Is(err, erorrs.ErrNotFound) {
 			s.logger.Info("user not found",

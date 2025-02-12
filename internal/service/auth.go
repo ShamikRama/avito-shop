@@ -7,7 +7,6 @@ import (
 	"avito-shop/internal/model"
 	"avito-shop/internal/utils"
 	"context"
-	"database/sql"
 	"errors"
 	"fmt"
 	"go.uber.org/zap"
@@ -15,7 +14,7 @@ import (
 
 type RepoAuthInterface interface {
 	CreateUser(ctx context.Context, user domain.User) (int, error)
-	GetUserId(ctx context.Context, username string, password string) (int, error)
+	GetUser(ctx context.Context, username string, password string) (domain.User, error)
 }
 
 type AuthService struct {
@@ -31,36 +30,38 @@ func NewAuthService(repo RepoAuthInterface, logger logger.Logger) *AuthService {
 }
 
 func (s *AuthService) Authorization(ctx context.Context, dto model.AuthRequestDTO) (string, error) {
-	idLog, err := s.authenticateUser(ctx, dto)
+	user, err := s.authenticateUser(ctx, dto)
 	switch {
-	case errors.Is(err, nil):
-		return generateJwtToken(idLog)
-	case errors.Is(err, erorrs.ErrNotFound):
+	case user != (domain.User{}):
+		return generateJwtToken(user.ID)
+	case user == (domain.User{}):
 		idReg, err := s.registerUser(ctx, dto)
 		if err != nil {
+			if errors.Is(err, erorrs.ErrUserExist) {
+				return "", fmt.Errorf("username is occupate: %w", erorrs.ErrUserExist)
+			}
 			return "", fmt.Errorf("registration failed: %w", err)
 		}
 		return generateJwtToken(idReg)
-
 	default:
 		return "", fmt.Errorf("authentication failed: %w", err)
 	}
 }
 
-func (s *AuthService) authenticateUser(ctx context.Context, dto model.AuthRequestDTO) (int, error) {
+func (s *AuthService) authenticateUser(ctx context.Context, dto model.AuthRequestDTO) (domain.User, error) {
 	username := dto.Username
 	passwordHash := utils.GeneratePasswordHash(dto.Password)
 
-	id, err := s.repo.GetUserId(ctx, username, passwordHash)
+	user, err := s.repo.GetUser(ctx, username, passwordHash)
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return 0, erorrs.ErrNotFound
-		}
 		s.logger.Error("failed to get user",
 			zap.String("operation", "service.GetUserId"))
-		return 0, fmt.Errorf("failed to get user: %w", err)
 	}
-	return id, nil
+	if user == (domain.User{}) {
+		return user, nil
+	}
+
+	return user, nil
 }
 
 func (s *AuthService) registerUser(ctx context.Context, dto model.AuthRequestDTO) (int, error) {

@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"avito-shop/internal/domain"
 	"avito-shop/internal/erorrs"
 	"avito-shop/internal/logger"
 	"context"
@@ -95,24 +96,23 @@ func (r *UserRepo) GetUserID(ctx context.Context, username string) (int, error) 
 	return userID, nil
 }
 
-func (r *UserRepo) GetItemID(ctx context.Context, itemName string) (int, int, error) {
-	var itemID int
+func (r *UserRepo) GetItem(ctx context.Context, itemName string) (domain.Item, error) {
+	var item domain.Item
 
-	var price int
 	err := r.db.QueryRowContext(ctx,
-		`SELECT id, price FROM items WHERE name = $1`,
+		`SELECT id, name, price FROM items WHERE name = $1`,
 		itemName,
-	).Scan(&itemID, &price)
+	).Scan(&item.ID, &item.Name, &item.Price)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return 0, 0, erorrs.ErrNotFound
+			return item, erorrs.ErrNotFound
 		}
-		return 0, 0, fmt.Errorf("get item: %w", err)
+		return item, fmt.Errorf("get item: %w", err)
 	}
-	return itemID, price, nil
+	return item, nil
 }
 
-func (r *UserRepo) BuyItem(ctx context.Context, userID, itemID, price int) error {
+func (r *UserRepo) BuyItem(ctx context.Context, userID int, item domain.Item) error {
 	tx, err := r.db.BeginTx(ctx, &sql.TxOptions{
 		Isolation: sql.LevelSerializable,
 	})
@@ -134,13 +134,13 @@ func (r *UserRepo) BuyItem(ctx context.Context, userID, itemID, price int) error
 		return fmt.Errorf("get balance: %w", err)
 	}
 
-	if balance < price {
+	if balance < item.Price {
 		return erorrs.ErrInsufficientFunds
 	}
 
 	res, err := tx.ExecContext(ctx,
 		`UPDATE users SET balance = balance - $1 WHERE id = $2`,
-		price, userID,
+		item.Price, userID,
 	)
 	if err != nil {
 		return fmt.Errorf("update balance: %w", err)
@@ -155,11 +155,11 @@ func (r *UserRepo) BuyItem(ctx context.Context, userID, itemID, price int) error
 	}
 
 	_, err = tx.ExecContext(ctx,
-		`INSERT INTO purchases (user_id, item_id, quantity)
-        VALUES ($1, $2, 1)
+		`INSERT INTO purchases (user_id, item_id, item_name, quantity)
+        VALUES ($1, $2, $3, 1)
         ON CONFLICT (user_id, item_id) 
         DO UPDATE SET quantity = purchases.quantity + 1`,
-		userID, itemID,
+		userID, item.ID, item.Name,
 	)
 	if err != nil {
 		return fmt.Errorf("update purchases: %w", err)

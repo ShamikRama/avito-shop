@@ -8,6 +8,13 @@ type User struct {
 	Coins        int
 }
 
+// Item
+type Item struct {
+	ID    int
+	Name  string
+	Price int
+}
+
 // Inventory
 type InventoryItem struct {
 	ID       uint

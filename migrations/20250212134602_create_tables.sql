@@ -46,6 +46,7 @@ CREATE TABLE IF NOT EXISTS purchases (
     id SERIAL PRIMARY KEY,
     user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
     item_id INTEGER REFERENCES items(id) ON DELETE CASCADE,
+    item_name VARCHAR(255) NOT NULL,
     quantity INTEGER NOT NULL DEFAULT 1,
     CHECK (quantity > 0),
     CONSTRAINT uniq_user_item UNIQUE (user_id, item_id)
