@@ -23,18 +23,9 @@ type InventoryItem struct {
 	Quantity int
 }
 
-// Transactions
-type Transaction struct {
-	ID         uint
-	FromUserID uint
-	ToUserID   uint
-	Amount     int
-}
-
-// Item Catalog (для покупки предметов)
-type ShopItem struct {
-	ID    uint
-	Name  string
-	Price int
-	Stock int
+type TransferWithUsernames struct {
+	FromUser string
+	ToUser   string
+	Amount   int
+	DateTime string
 }

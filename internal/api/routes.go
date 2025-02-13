@@ -28,7 +28,7 @@ func (r *Api) InitRoutes() *gin.Engine {
 
 		protected := api.Group("", r.UserIdentity) // сделано
 		{
-			protected.GET("/info")
+			protected.GET("/info", r.GetUserInfo)   // сделано
 			protected.POST("/sendCoin", r.SendCoin) // сделано
 			protected.POST("/buy/:item", r.BuyItem) // сделано
 		}
