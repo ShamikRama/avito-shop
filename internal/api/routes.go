@@ -26,11 +26,11 @@ func (r *Api) InitRoutes() *gin.Engine {
 	{
 		api.POST("/auth", r.Auth) // сделано
 
-		protected := api.Group("", r.UserIdentity) // сделано
+		protected := api.Group("", r.UserIdentity)
 		{
-			protected.GET("/info", r.GetUserInfo)   // сделано
-			protected.POST("/sendCoin", r.SendCoin) // сделано
-			protected.POST("/buy/:item", r.BuyItem) // сделано
+			protected.GET("/info", r.GetUserInfo)
+			protected.POST("/sendCoin", r.SendCoin)
+			protected.POST("/buy/:item", r.BuyItem)
 		}
 	}
 

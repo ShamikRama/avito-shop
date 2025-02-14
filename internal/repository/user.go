@@ -29,7 +29,8 @@ func (r *UserRepo) SendCoins(ctx context.Context, fromUserID int, toUserID int, 
 		Isolation: sql.LevelSerializable,
 	})
 	if err != nil {
-		return fmt.Errorf("begin transaction: %w", err)
+		r.logger.Error("sql.User.SendCoin: error begin transaction", zap.Error(err))
+		return err
 	}
 	defer tx.Rollback()
 
@@ -41,16 +42,14 @@ func (r *UserRepo) SendCoins(ctx context.Context, fromUserID int, toUserID int, 
 
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			r.logger.Error("user not found",
-				zap.String("operation", "sql.SendCoin"))
+			r.logger.Error("sql.User.SendCoin: no rows", zap.Error(err))
 			return erorrs.ErrNotFound
 		}
-		return fmt.Errorf("get sender balance: %w", err)
+		return err
 	}
 
 	if currentBalance < amount {
-		r.logger.Error("insufficient balance",
-			zap.String("operation", "sql.SendCoin"))
+		r.logger.Error("sql.User.SendCoin: insufficient balance", zap.Error(err))
 		return erorrs.ErrInsufficientFunds
 	}
 
@@ -59,7 +58,8 @@ func (r *UserRepo) SendCoins(ctx context.Context, fromUserID int, toUserID int, 
 		amount, fromUserID,
 	)
 	if err != nil {
-		return fmt.Errorf("subtract balance: %w", err)
+		r.logger.Error("sql.User.SendCoin: subtract balance", zap.Error(err))
+		return err
 	}
 
 	_, err = tx.ExecContext(ctx,
@@ -67,7 +67,8 @@ func (r *UserRepo) SendCoins(ctx context.Context, fromUserID int, toUserID int, 
 		amount, toUserID,
 	)
 	if err != nil {
-		return fmt.Errorf("add balance: %w", err)
+		r.logger.Error("sql.User.SendCoin: add balance", zap.Error(err))
+		return err
 	}
 
 	_, err = tx.ExecContext(ctx,
@@ -75,7 +76,8 @@ func (r *UserRepo) SendCoins(ctx context.Context, fromUserID int, toUserID int, 
 		fromUserID, toUserID, amount,
 	)
 	if err != nil {
-		return fmt.Errorf("save transfer: %w", err)
+		r.logger.Error("sql.User.SendCoin: save transfer", zap.Error(err))
+		return err
 	}
 
 	return tx.Commit()
@@ -90,9 +92,11 @@ func (r *UserRepo) GetItem(ctx context.Context, itemName string) (domain.Item, e
 	).Scan(&item.ID, &item.Name, &item.Price)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
+			r.logger.Error("sql.User.GetItem: no rows", zap.Error(err))
 			return item, erorrs.ErrNotFound
 		}
-		return item, fmt.Errorf("get item: %w", err)
+		r.logger.Error("sql.User.GetItem: error query row", zap.Error(err))
+		return item, err
 	}
 	return item, nil
 }
@@ -102,7 +106,8 @@ func (r *UserRepo) BuyItem(ctx context.Context, userID int, item domain.Item) er
 		Isolation: sql.LevelSerializable,
 	})
 	if err != nil {
-		return fmt.Errorf("begin transaction: %w", err)
+		r.logger.Error("sql.User.ByItem: error begin transaction", zap.Error(err))
+		return err
 	}
 	defer tx.Rollback()
 
@@ -114,12 +119,15 @@ func (r *UserRepo) BuyItem(ctx context.Context, userID int, item domain.Item) er
 
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
+			r.logger.Error("sql.User.ByItem: no rows", zap.Error(err))
 			return erorrs.ErrNotFound
 		}
-		return fmt.Errorf("get balance: %w", err)
+		r.logger.Error("sql.User.ByItem: error query row", zap.Error(err))
+		return err
 	}
 
 	if balance < item.Price {
+		r.logger.Error("sql.User.ByItem: insufficient funds", zap.Error(err))
 		return erorrs.ErrInsufficientFunds
 	}
 
@@ -128,14 +136,17 @@ func (r *UserRepo) BuyItem(ctx context.Context, userID int, item domain.Item) er
 		item.Price, userID,
 	)
 	if err != nil {
-		return fmt.Errorf("update balance: %w", err)
+		r.logger.Error("sql.User.ByItem: error exec", zap.Error(err))
+		return err
 	}
 
 	rows, err := res.RowsAffected()
 	if err != nil {
-		return fmt.Errorf("check balance update: %w", err)
+		r.logger.Error("sql.User.ByItem: error rows affected", zap.Error(err))
+		return err
 	}
 	if rows == 0 {
+		r.logger.Error("sql.User.ByItem: no rows", zap.Error(err))
 		return erorrs.ErrNotFound
 	}
 
@@ -147,6 +158,7 @@ func (r *UserRepo) BuyItem(ctx context.Context, userID int, item domain.Item) er
 		userID, item.ID, item.Name,
 	)
 	if err != nil {
+		r.logger.Error("sql.User.ByItem: error exec", zap.Error(err))
 		return fmt.Errorf("update purchases: %w", err)
 	}
 
@@ -159,7 +171,8 @@ func (r *UserRepo) GetPurchasedItems(ctx context.Context, userID int) ([]model.I
 		userID,
 	)
 	if err != nil {
-		return nil, fmt.Errorf("get purchased items: %w", err)
+		r.logger.Error("sql.User.GetPurchasedItems: error query", zap.Error(err))
+		return nil, err
 	}
 	defer rows.Close()
 
@@ -168,16 +181,18 @@ func (r *UserRepo) GetPurchasedItems(ctx context.Context, userID int) ([]model.I
 		var item model.ItemDTO
 		if err := rows.Scan(&item.Type, &item.Quantity); err != nil {
 			if errors.Is(err, sql.ErrNoRows) {
-				r.logger.Error("no rows")
-				return items, fmt.Errorf("sql no rows: %w", sql.ErrNoRows)
+				r.logger.Error("sql.User.GetPurchasedItems: no rows", zap.Error(err))
+				return items, sql.ErrNoRows
 			}
-			return nil, fmt.Errorf("scan purchased item: %w", err)
+			r.logger.Error("sql.User.GetPurchasedItems: error scan", zap.Error(err))
+			return nil, err
 		}
 		items = append(items, item)
 	}
 
 	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("rows error: %w", err)
+		r.logger.Error("sql.User.GetPurchasedItems: rows error", zap.Error(err))
+		return nil, err
 	}
 
 	return items, nil
@@ -191,7 +206,8 @@ func (r *UserRepo) GetUser(ctx context.Context, userID int) (domain.User, error)
 	).Scan(&user.ID, &user.Username, &user.Coins)
 
 	if err != nil {
-		return user, fmt.Errorf("find balance: %w", err)
+		r.logger.Error("sql.User.GetUser: error query", zap.Error(err))
+		return user, err
 	}
 
 	return user, nil
@@ -210,7 +226,8 @@ func (r *UserRepo) GetCoinHistory(ctx context.Context, userID int, currentUserna
 		userID,
 	)
 	if err != nil {
-		return model.CoinHistoryDTO{}, fmt.Errorf("get coin history: %w", err)
+		r.logger.Error("sql.User.GetCoinHistory: error query", zap.Error(err))
+		return model.CoinHistoryDTO{}, err
 	}
 	defer rows.Close()
 
@@ -222,7 +239,8 @@ func (r *UserRepo) GetCoinHistory(ctx context.Context, userID int, currentUserna
 		var amount int
 
 		if err := rows.Scan(&fromUser, &toUser, &amount); err != nil {
-			return model.CoinHistoryDTO{}, fmt.Errorf("scan coin history: %w", err)
+			r.logger.Error("sql.User.GetCoinHistory: error scan", zap.Error(err))
+			return model.CoinHistoryDTO{}, err
 		}
 
 		if toUser == currentUsername {
@@ -239,7 +257,8 @@ func (r *UserRepo) GetCoinHistory(ctx context.Context, userID int, currentUserna
 	}
 
 	if err := rows.Err(); err != nil {
-		return model.CoinHistoryDTO{}, fmt.Errorf("rows error: %w", err)
+		r.logger.Error("sql.User.GetCoinHistory: rows error", zap.Error(err))
+		return model.CoinHistoryDTO{}, err
 	}
 
 	return model.CoinHistoryDTO{
@@ -256,7 +275,8 @@ func (r *UserRepo) GetUserByName(ctx context.Context, toUser string) (int, error
 	).Scan(&id)
 
 	if err != nil {
-		return 0, fmt.Errorf("get user: %w", err)
+		r.logger.Error("sql.User.GetUserByName: error query", zap.Error(err))
+		return 0, err
 	}
 
 	return id, nil

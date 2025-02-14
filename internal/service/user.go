@@ -8,10 +8,10 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"fmt"
 	"go.uber.org/zap"
 )
 
+//go:generate go run github.com/vektra/mockery/v2@latest --name=RepoUserInterface
 type RepoUserInterface interface {
 	BuyItem(ctx context.Context, userID int, item domain.Item) error
 	SendCoins(ctx context.Context, fromUserID int, toUserID int, amount int) error
@@ -37,7 +37,8 @@ func NewUserService(repo RepoUserInterface, logger logger.Logger) *UserService {
 func (s *UserService) SendCoinToUser(ctx context.Context, fromUserID int, toUser string, amount int) error {
 	toUserID, err := s.repo.GetUserByName(ctx, toUser)
 	if err != nil {
-		return fmt.Errorf("get recipient ID: %w", err)
+		s.logger.Error("service.User.SendCoinToUser: error getting user", zap.Error(err))
+		return err
 	}
 
 	if fromUserID == toUserID {
@@ -47,14 +48,14 @@ func (s *UserService) SendCoinToUser(ctx context.Context, fromUserID int, toUser
 	if err := s.repo.SendCoins(ctx, fromUserID, toUserID, amount); err != nil {
 		switch {
 		case errors.Is(err, erorrs.ErrNotFound):
-			s.logger.Error("user not found", zap.String("operation", "service.SendCoin"))
+			s.logger.Error("service.User.SendCoinToUser: user not found", zap.Error(err))
 			return erorrs.ErrNotFound
 		case errors.Is(err, erorrs.ErrInsufficientFunds):
-			s.logger.Error("insufficient funds", zap.String("operation", "service.SendCoin"))
+			s.logger.Error("service.User.SendCoinToUser: self transferring", zap.Error(err))
 			return erorrs.ErrInsufficientFunds
 		default:
-			s.logger.Error("failed to send coins", zap.Error(err))
-			return fmt.Errorf("send coin: %w", err)
+			s.logger.Error("service.User.SendCoinToUser: error sending coin", zap.Error(err))
+			return err
 		}
 	}
 
@@ -67,28 +68,28 @@ func (s *UserService) BuyItem(ctx context.Context, userID int, input model.BuyIt
 	item, err := s.repo.GetItem(ctx, input.Item)
 	if err != nil {
 		if errors.Is(err, erorrs.ErrNotFound) {
-			s.logger.Error("item not found", zap.String("item", input.Item), zap.String("operation", "service.BuyItem"))
+			s.logger.Error("service.User.BuyItem: item not found", zap.Error(err))
 			return erorrs.ErrNotFound
 		}
-		s.logger.Error("failed to get item", zap.Error(err))
-		return fmt.Errorf("buy item: %w", err)
+		s.logger.Error("service.User.BuyItem: error getting item", zap.Error(err))
+		return err
 	}
 
 	if err := s.repo.BuyItem(ctx, userID, item); err != nil {
 		switch {
 		case errors.Is(err, erorrs.ErrNotFound):
-			s.logger.Error("user not found", zap.String("operation", "service.BuyItem"))
+			s.logger.Error("service.User.BuyItem: item not found", zap.Error(err))
 			return erorrs.ErrNotFound
 		case errors.Is(err, erorrs.ErrInsufficientFunds):
-			s.logger.Error("insufficient funds", zap.String("operation", "service.BuyItem"))
+			s.logger.Error("service.User.BuyItem: balance to buy is wrong", zap.Error(err))
 			return erorrs.ErrInsufficientFunds
 		default:
-			s.logger.Error("failed to buy item", zap.Error(err))
-			return fmt.Errorf("buy item: %w", err)
+			s.logger.Error("service.User.BuyItem: error buy item", zap.Error(err))
+			return err
 		}
 	}
 
-	s.logger.Info("item bought successfully", zap.Int("userID", userID), zap.String("item", input.Item))
+	s.logger.Info("item bought successfully", zap.Int("userID", userID))
 	return nil
 }
 
@@ -96,24 +97,24 @@ func (s *UserService) GetUserInfo(ctx context.Context, userID int) (model.InfoRe
 	items, err := s.getUserItems(ctx, userID)
 	if err != nil {
 		if errors.Is(err, erorrs.ErrItemNotFound) {
-			s.logger.Error("not found item for user", zap.Int("userID", userID))
+			s.logger.Error("service.User.GetUserInfo: items is null", zap.Error(err))
 			items = []model.ItemDTO{}
 		} else {
-			s.logger.Error("error getting items for user", zap.Int("userID", userID), zap.Error(err))
-			return model.InfoResponseDTO{}, fmt.Errorf("get user items: %w", err)
+			s.logger.Error("service.User.GetUserInfo: error getting info", zap.Error(err))
+			return model.InfoResponseDTO{}, err
 		}
 	}
 
 	balance, userName, err := s.getUserNameBalance(ctx, userID)
 	if err != nil {
-		s.logger.Error("error getting balance for user", zap.Int("userID", userID), zap.Error(err))
-		return model.InfoResponseDTO{}, fmt.Errorf("get user balance: %w", err)
+		s.logger.Error("service.User.GetUserInfo: error getting user name and balance", zap.Error(err))
+		return model.InfoResponseDTO{}, err
 	}
 
 	coinHistory, err := s.repo.GetCoinHistory(ctx, userID, userName)
 	if err != nil {
-		s.logger.Error("failed to get coin history", zap.Int("userID", userID), zap.Error(err))
-		return model.InfoResponseDTO{}, fmt.Errorf("get coin history: %w", err)
+		s.logger.Error("service.User.GetUserInfo: error get coin history", zap.Error(err))
+		return model.InfoResponseDTO{}, err
 	}
 
 	return model.InfoResponseDTO{
@@ -127,10 +128,11 @@ func (s *UserService) getUserItems(ctx context.Context, userID int) ([]model.Ite
 	items, err := s.repo.GetPurchasedItems(ctx, userID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
+			s.logger.Error("service.User.getUserItems: no items", zap.Error(err))
 			return []model.ItemDTO{}, erorrs.ErrItemNotFound
 		}
-		s.logger.Error("failed to get purchased items", zap.Int("userID", userID), zap.Error(err))
-		return nil, fmt.Errorf("get purchased items: %w", err)
+		s.logger.Error("service.User.getUserItems: error get user items", zap.Error(err))
+		return nil, err
 	}
 	return items, nil
 }
@@ -138,8 +140,8 @@ func (s *UserService) getUserItems(ctx context.Context, userID int) ([]model.Ite
 func (s *UserService) getUserNameBalance(ctx context.Context, userID int) (int, string, error) {
 	user, err := s.repo.GetUser(ctx, userID)
 	if err != nil {
-		s.logger.Error("error get balance in servicre")
-		return 0, "", fmt.Errorf("get balance: %w", err)
+		s.logger.Error("service.User.getUserNameBalance: error", zap.Error(err))
+		return 0, "", err
 	}
 
 	return user.Coins, user.Username, nil

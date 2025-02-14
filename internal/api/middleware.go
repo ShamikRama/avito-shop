@@ -50,7 +50,7 @@ func (r *Api) UserIdentity(c *gin.Context) {
 	}
 
 	c.Set(userCtx, userId)
-	c.Next() // спорно
+	c.Next()
 }
 
 func getUserId(c *gin.Context) (int, error) {

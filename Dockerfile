@@ -1,6 +1,6 @@
 # ВНИМАНИЕ - собрать файл находясь в корне проекта с помощью docker build -t avitoservice .
 # Используем базовый образ Go
-FROM golang:1.23-alpine
+FROM golang:1.24-alpine
 
 # Устанавливаем рабочую директорию
 WORKDIR /avito-shop

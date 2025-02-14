@@ -7,7 +7,6 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"fmt"
 	"github.com/lib/pq"
 	"go.uber.org/zap"
 )
@@ -42,11 +41,11 @@ func (r *AuthRepo) GetUser(ctx context.Context, username string, password string
 
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			r.logger.Error("No rows in sql for user", zap.Error(err))
+			r.logger.Error("sql.Auth.GetUser: No rows in sql for user", zap.Error(err))
 			return domain.User{}, nil
 		}
-		r.logger.Error("Database error: get user", zap.Error(err))
-		return domain.User{}, fmt.Errorf("database error: %w", err)
+		r.logger.Error("sql.Auth.GetUser: Database error", zap.Error(err))
+		return domain.User{}, err
 	}
 
 	return user, nil
@@ -68,8 +67,8 @@ func (r *AuthRepo) CreateUser(ctx context.Context, user domain.User) (int, error
 		if pqErr, ok := err.(*pq.Error); ok && pqErr.Code == "23505" {
 			return 0, erorrs.ErrUserExist
 		}
-		r.logger.Error("Database error: create user", zap.Error(err))
-		return 0, fmt.Errorf("database error: %w", err)
+		r.logger.Error("sql.Auth.CreateUser: Database error", zap.Error(err))
+		return 0, err
 	}
 
 	return id, nil

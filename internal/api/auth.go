@@ -11,8 +11,10 @@ import (
 	"time"
 )
 
+//go:generate go run github.com/vektra/mockery/v2@latest --name=ServiceAuthInterface
 type ServiceAuthInterface interface {
 	Authorization(ctx context.Context, dto model.AuthRequestDTO) (string, error)
+	GenerateJwtToken(userId int) (string, error)
 }
 
 func (r *Api) Auth(c *gin.Context) {
