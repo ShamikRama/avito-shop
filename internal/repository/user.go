@@ -93,7 +93,7 @@ func (r *UserRepo) GetItem(ctx context.Context, itemName string) (domain.Item, e
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			r.logger.Error("sql.User.GetItem: no rows", zap.Error(err))
-			return item, erorrs.ErrNotFound
+			return item, erorrs.ErrItemNotFound
 		}
 		r.logger.Error("sql.User.GetItem: error query row", zap.Error(err))
 		return item, err

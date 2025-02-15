@@ -16,17 +16,17 @@ type RepoUserInterface struct {
 	mock.Mock
 }
 
-// BuyItem provides a mock function with given fields: ctx, userID, item
-func (_m *RepoUserInterface) BuyItem(ctx context.Context, userID int, item domain.Item) error {
-	ret := _m.Called(ctx, userID, item)
+// BuyItem provides a mock function with given fields: ctx, user, item
+func (_m *RepoUserInterface) BuyItem(ctx context.Context, user domain.User, item domain.Item) error {
+	ret := _m.Called(ctx, user, item)
 
 	if len(ret) == 0 {
 		panic("no return value specified for BuyItem")
 	}
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, int, domain.Item) error); ok {
-		r0 = rf(ctx, userID, item)
+	if rf, ok := ret.Get(0).(func(context.Context, domain.User, domain.Item) error); ok {
+		r0 = rf(ctx, user, item)
 	} else {
 		r0 = ret.Error(0)
 	}

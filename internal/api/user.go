@@ -79,7 +79,7 @@ func (r *Api) BuyItem(c *gin.Context) {
 	err = r.user.BuyItem(ctx, userID, input)
 	if err != nil {
 		switch {
-		case errors.Is(err, erorrs.ErrNotFound):
+		case errors.Is(err, erorrs.ErrItemNotFound):
 			r.logger.Error("user not found", zap.String("item", input.Item))
 			c.JSON(http.StatusNotFound, model.ErrorResponseDTO{Error: "товар не найден"})
 		case errors.Is(err, erorrs.ErrNotFound):

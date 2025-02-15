@@ -12,16 +12,6 @@ import (
 	"testing"
 )
 
-//type FakeUser struct {
-//	ID       int
-//	Username string
-//	Coins    int
-//}
-//
-//func NewFakeUser() FakeUser {
-//	return FakeUser{1, "user1", 10}
-//}
-
 func TestUserService_SendCoinToUser(t *testing.T) {
 	mockRepo := mocks.NewRepoUserInterface(t)
 	mockLogger := mocks2.NewLogger(t)
@@ -99,7 +89,6 @@ func TestUserService_BuyItem(t *testing.T) {
 	userService := NewUserService(mockRepo, mockLogger)
 
 	tests := []struct {
-		//fake          FakeUser
 		name          string
 		userID        int
 		user          domain.User
@@ -115,7 +104,8 @@ func TestUserService_BuyItem(t *testing.T) {
 			dto:    model.BuyItemRequestDTO{Item: "cup"},
 			mockRepo: func() {
 				mockRepo.On("GetItem", mock.Anything, "cup").Return(domain.Item{ID: 1, Name: "cup", Price: 20}, nil)
-				mockRepo.On("BuyItem", mock.Anything, 1, domain.Item{ID: 1, Name: "cup", Price: 20}).Return(nil)
+				mockRepo.On("GetUser", mock.Anything, 1).Return(domain.User{ID: 1, Username: "user1", PasswordHash: "", Coins: 1000}, nil)
+				mockRepo.On("BuyItem", mock.Anything, domain.User{ID: 1, Username: "user1", Coins: 1000}, domain.Item{ID: 1, Name: "cup", Price: 20}).Return(nil)
 			},
 			mockLogger: func() {
 				mockLogger.On("Info", mock.Anything, mock.Anything)
@@ -127,7 +117,20 @@ func TestUserService_BuyItem(t *testing.T) {
 			userID: 1,
 			dto:    model.BuyItemRequestDTO{Item: "car"},
 			mockRepo: func() {
-				mockRepo.On("GetItem", mock.Anything, "car").Return(domain.Item{}, erorrs.ErrNotFound)
+				mockRepo.On("GetItem", mock.Anything, "car").Return(domain.Item{ID: 45, Name: "cup", Price: 20324}, erorrs.ErrItemNotFound)
+			},
+			mockLogger: func() {
+				mockLogger.On("Error", mock.Anything, mock.Anything)
+			},
+			expectedError: erorrs.ErrItemNotFound,
+		},
+		{
+			name:   "user not found",
+			userID: 25,
+			dto:    model.BuyItemRequestDTO{Item: "cup"},
+			mockRepo: func() {
+				mockRepo.On("GetItem", mock.Anything, "cup").Return(domain.Item{ID: 1, Name: "cup", Price: 20}, nil)
+				mockRepo.On("GetUser", mock.Anything, 25).Return(domain.User{ID: 0, Username: "", Coins: 0}, erorrs.ErrNotFound)
 			},
 			mockLogger: func() {
 				mockLogger.On("Error", mock.Anything, mock.Anything)
@@ -135,32 +138,32 @@ func TestUserService_BuyItem(t *testing.T) {
 			expectedError: erorrs.ErrNotFound,
 		},
 		{
-			name:   "user not found",
-			userID: 29,
+			name:   "balance is not enough",
+			userID: 2,
 			dto:    model.BuyItemRequestDTO{Item: "cup"},
 			mockRepo: func() {
 				mockRepo.On("GetItem", mock.Anything, "cup").Return(domain.Item{ID: 1, Name: "cup", Price: 20}, nil)
-				mockRepo.On("BuyItem", mock.Anything, 29, domain.Item{ID: 1, Name: "cup", Price: 20}).Return(erorrs.ErrNotFound)
+				mockRepo.On("GetUser", mock.Anything, 2).Return(domain.User{ID: 2, Username: "user2", Coins: 2}, nil)
+			},
+			mockLogger: func() {
+				mockLogger.On("Error", mock.Anything, mock.Anything)
+			},
+			expectedError: erorrs.ErrInsufficientFunds,
+		},
+		{
+			name:   "error not found",
+			userID: 3,
+			dto:    model.BuyItemRequestDTO{Item: "cup"},
+			mockRepo: func() {
+				mockRepo.On("GetItem", mock.Anything, "cup").Return(domain.Item{ID: 3, Name: "cup", Price: 20}, nil)
+				mockRepo.On("GetUser", mock.Anything, 3).Return(domain.User{ID: 3, Username: "user3", Coins: 1000}, nil)
+				mockRepo.On("BuyItem", mock.Anything, domain.User{ID: 3, Username: "user3", Coins: 1000}, domain.Item{ID: 1, Name: "cup", Price: 20}).Return(erorrs.ErrNotFound)
 			},
 			mockLogger: func() {
 				mockLogger.On("Error", mock.Anything, mock.Anything)
 			},
 			expectedError: erorrs.ErrNotFound,
 		},
-		//{
-		//	name: "balance is wrong",
-		//	user: domain.User{ID: 1, Coins: 50},
-		//	dto:  model.BuyItemRequestDTO{Item: "cup"},
-		//	fake: FakeUser{ID: 1, Coins: 3},
-		//	mockRepo: func() {
-		//		mockRepo.On("GetItem", mock.Anything, "cup").Return(domain.Item{ID: 1, Name: "cup", Price: 20}, nil)
-		//		mockRepo.On("BuyItem", mock.Anything, domain.User{ID: 1}, domain.Item{ID: 1, Name: "cup", Price: 20}).Return(erorrs.ErrInsufficientFunds)
-		//	},
-		//	mockLogger: func() {
-		//		mockLogger.On("Error", mock.Anything, mock.Anything)
-		//	},
-		//	expectedError: erorrs.ErrInsufficientFunds,
-		//},
 	}
 
 	for _, tt := range tests {
@@ -176,3 +179,100 @@ func TestUserService_BuyItem(t *testing.T) {
 		})
 	}
 }
+
+//func TestUserService_GetUserInfo(t *testing.T) {
+//	mockRepo := mocks.NewRepoUserInterface(t)
+//	mockLogger := mocks2.NewLogger(t)
+//	userService := NewUserService(mockRepo, mockLogger)
+//
+//	tests := []struct {
+//		name          string
+//		userID        int
+//		user          domain.User
+//		dto           model.BuyItemRequestDTO
+//		item          domain.Item
+//		mockRepo      func()
+//		mockLogger    func()
+//		expectedError error
+//	}{
+//		{
+//			name:   "success",
+//			userID: 1,
+//			dto:    model.BuyItemRequestDTO{Item: "cup"},
+//			mockRepo: func() {
+//				mockRepo.On("GetItem", mock.Anything, "cup").Return(domain.Item{ID: 1, Name: "cup", Price: 20}, nil)
+//				mockRepo.On("GetUser", mock.Anything, 1).Return(domain.User{ID: 1, Username: "user1", PasswordHash: "", Coins: 1000}, nil)
+//				mockRepo.On("BuyItem", mock.Anything, domain.User{ID: 1, Username: "user1", Coins: 1000}, domain.Item{ID: 1, Name: "cup", Price: 20}).Return(nil)
+//			},
+//			mockLogger: func() {
+//				mockLogger.On("Info", mock.Anything, mock.Anything)
+//			},
+//			expectedError: nil,
+//		},
+//		{
+//			name:   "item not found",
+//			userID: 1,
+//			dto:    model.BuyItemRequestDTO{Item: "car"},
+//			mockRepo: func() {
+//				mockRepo.On("GetItem", mock.Anything, "car").Return(domain.Item{ID: 45, Name: "cup", Price: 20324}, erorrs.ErrItemNotFound)
+//			},
+//			mockLogger: func() {
+//				mockLogger.On("Error", mock.Anything, mock.Anything)
+//			},
+//			expectedError: erorrs.ErrItemNotFound,
+//		},
+//		{
+//			name:   "user not found",
+//			userID: 25,
+//			dto:    model.BuyItemRequestDTO{Item: "cup"},
+//			mockRepo: func() {
+//				mockRepo.On("GetItem", mock.Anything, "cup").Return(domain.Item{ID: 1, Name: "cup", Price: 20}, nil)
+//				mockRepo.On("GetUser", mock.Anything, 25).Return(domain.User{ID: 0, Username: "", Coins: 0}, erorrs.ErrNotFound)
+//			},
+//			mockLogger: func() {
+//				mockLogger.On("Error", mock.Anything, mock.Anything)
+//			},
+//			expectedError: erorrs.ErrNotFound,
+//		},
+//		{
+//			name:   "balance is not enough",
+//			userID: 2,
+//			dto:    model.BuyItemRequestDTO{Item: "cup"},
+//			mockRepo: func() {
+//				mockRepo.On("GetItem", mock.Anything, "cup").Return(domain.Item{ID: 1, Name: "cup", Price: 20}, nil)
+//				mockRepo.On("GetUser", mock.Anything, 2).Return(domain.User{ID: 2, Username: "user2", Coins: 2}, nil)
+//			},
+//			mockLogger: func() {
+//				mockLogger.On("Error", mock.Anything, mock.Anything)
+//			},
+//			expectedError: erorrs.ErrInsufficientFunds,
+//		},
+//		{
+//			name:   "error not found",
+//			userID: 3,
+//			dto:    model.BuyItemRequestDTO{Item: "cup"},
+//			mockRepo: func() {
+//				mockRepo.On("GetItem", mock.Anything, "cup").Return(domain.Item{ID: 3, Name: "cup", Price: 20}, nil)
+//				mockRepo.On("GetUser", mock.Anything, 3).Return(domain.User{ID: 3, Username: "user3", Coins: 1000}, nil)
+//				mockRepo.On("BuyItem", mock.Anything, domain.User{ID: 3, Username: "user3", Coins: 1000}, domain.Item{ID: 1, Name: "cup", Price: 20}).Return(erorrs.ErrNotFound)
+//			},
+//			mockLogger: func() {
+//				mockLogger.On("Error", mock.Anything, mock.Anything)
+//			},
+//			expectedError: erorrs.ErrNotFound,
+//		},
+//	}
+//
+//	for _, tt := range tests {
+//		t.Run(tt.name, func(t *testing.T) {
+//			tt.mockRepo()
+//			tt.mockLogger()
+//
+//			err := userService.GetUserInfo(context.Background(), tt.userID, tt.dto)
+//
+//			assert.Equal(t, tt.expectedError, err)
+//			mockRepo.AssertExpectations(t)
+//			mockLogger.AssertExpectations(t)
+//		})
+//	}
+//}

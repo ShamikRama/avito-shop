@@ -68,7 +68,7 @@ func (s *UserService) SendCoinToUser(ctx context.Context, fromUserID int, toUser
 func (s *UserService) BuyItem(ctx context.Context, userID int, input model.BuyItemRequestDTO) error {
 	item, err := s.repo.GetItem(ctx, input.Item)
 	if err != nil {
-		if errors.Is(err, erorrs.ErrNotFound) {
+		if errors.Is(err, erorrs.ErrItemNotFound) {
 			s.logger.Error("service.User.BuyItem: item not found", zap.Error(err))
 			return erorrs.ErrItemNotFound
 		}
@@ -79,9 +79,11 @@ func (s *UserService) BuyItem(ctx context.Context, userID int, input model.BuyIt
 	user, err := s.repo.GetUser(ctx, userID)
 	if err != nil {
 		if errors.Is(err, erorrs.ErrNotFound) {
-			s.logger.Error("service.User.BuyItem: item not found", zap.Error(err))
+			s.logger.Error("service.User.BuyItem: user not found", zap.Error(err))
 			return erorrs.ErrNotFound
 		}
+		s.logger.Error("service.User.BuyItem: error getting user", zap.Error(err))
+		return err
 	}
 
 	if user.Coins < item.Price {
@@ -89,18 +91,14 @@ func (s *UserService) BuyItem(ctx context.Context, userID int, input model.BuyIt
 		return erorrs.ErrInsufficientFunds
 	}
 
-	if err := s.repo.BuyItem(ctx, user, item); err != nil {
-		switch {
-		case errors.Is(err, erorrs.ErrNotFound):
-			s.logger.Error("service.User.BuyItem: user not found", zap.Error(err))
+	err = s.repo.BuyItem(ctx, user, item)
+	if err != nil {
+		if errors.Is(err, erorrs.ErrNotFound) {
+			s.logger.Error("service.User.ByItem: rows not found", zap.Error(err))
 			return erorrs.ErrNotFound
-		case errors.Is(err, erorrs.ErrInsufficientFunds):
-			s.logger.Error("service.User.BuyItem: balance to buy is wrong", zap.Error(err))
-			return erorrs.ErrInsufficientFunds
-		default:
-			s.logger.Error("service.User.BuyItem: error buy item", zap.Error(err))
-			return err
 		}
+		s.logger.Error("service.User.ByItem: error buy", zap.Error(err))
+		return err
 	}
 
 	s.logger.Info("item bought successfully", zap.Int("userID", userID))
