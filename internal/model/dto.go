@@ -20,8 +20,8 @@ type ItemDTO struct {
 }
 
 type TransactionHistoryDTO struct {
-	FromUser string `json:"fromUser,omitempty"`
-	ToUser   string `json:"toUser,omitempty"`
+	FromUser string `json:"fromUser"`
+	ToUser   string `json:"toUser"`
 	Amount   int    `json:"amount"`
 }
 

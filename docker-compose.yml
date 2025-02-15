@@ -13,6 +13,19 @@ services:
     networks:
       - internal
 
+  dbTest:
+    image: postgres:16
+    container_name: postgres_test
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: shopTest
+    ports:
+      - "5433:5432"
+    networks:
+      - internal
+
+
   avito-shop:
     image: avitoservice:latest
     container_name: avitoservice
@@ -25,7 +38,7 @@ services:
       CONFIG_PATH: /avito-shop/.env
     ports:
       - "8080:8080"
-    command: ["/bin/sh", "-c", "/usr/local/bin/wait-for-it db:5432 -- sleep 15 && ./avitoservice"]
+    command: ["/bin/sh", "-c", "/usr/local/bin/wait-for-it db:5432 -- sleep 5 && ./avitoservice"]
     networks:
       - internal
 
