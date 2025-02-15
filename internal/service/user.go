@@ -13,7 +13,7 @@ import (
 
 //go:generate go run github.com/vektra/mockery/v2@latest --name=RepoUserInterface
 type RepoUserInterface interface {
-	BuyItem(ctx context.Context, userID int, item domain.Item) error
+	BuyItem(ctx context.Context, user domain.User, item domain.Item) error
 	SendCoins(ctx context.Context, fromUserID int, toUserID int, amount int) error
 	GetItem(ctx context.Context, itemName string) (domain.Item, error)
 	GetPurchasedItems(ctx context.Context, userID int) ([]model.ItemDTO, error)
@@ -70,13 +70,26 @@ func (s *UserService) BuyItem(ctx context.Context, userID int, input model.BuyIt
 	if err != nil {
 		if errors.Is(err, erorrs.ErrNotFound) {
 			s.logger.Error("service.User.BuyItem: item not found", zap.Error(err))
-			return erorrs.ErrNotFound
+			return erorrs.ErrItemNotFound
 		}
 		s.logger.Error("service.User.BuyItem: error getting item", zap.Error(err))
 		return err
 	}
 
-	if err := s.repo.BuyItem(ctx, userID, item); err != nil {
+	user, err := s.repo.GetUser(ctx, userID)
+	if err != nil {
+		if errors.Is(err, erorrs.ErrNotFound) {
+			s.logger.Error("service.User.BuyItem: item not found", zap.Error(err))
+			return erorrs.ErrNotFound
+		}
+	}
+
+	if user.Coins < item.Price {
+		s.logger.Error("service.User.ByItem: insufficient funds", zap.Error(err))
+		return erorrs.ErrInsufficientFunds
+	}
+
+	if err := s.repo.BuyItem(ctx, user, item); err != nil {
 		switch {
 		case errors.Is(err, erorrs.ErrNotFound):
 			s.logger.Error("service.User.BuyItem: user not found", zap.Error(err))

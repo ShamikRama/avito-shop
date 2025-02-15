@@ -101,7 +101,7 @@ func (r *UserRepo) GetItem(ctx context.Context, itemName string) (domain.Item, e
 	return item, nil
 }
 
-func (r *UserRepo) BuyItem(ctx context.Context, userID int, item domain.Item) error {
+func (r *UserRepo) BuyItem(ctx context.Context, user domain.User, item domain.Item) error {
 	tx, err := r.db.BeginTx(ctx, &sql.TxOptions{
 		Isolation: sql.LevelSerializable,
 	})
@@ -111,29 +111,9 @@ func (r *UserRepo) BuyItem(ctx context.Context, userID int, item domain.Item) er
 	}
 	defer tx.Rollback()
 
-	var balance int
-	err = tx.QueryRowContext(ctx,
-		`SELECT balance FROM users WHERE id = $1 FOR UPDATE`,
-		userID,
-	).Scan(&balance)
-
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			r.logger.Error("sql.User.ByItem: no rows", zap.Error(err))
-			return erorrs.ErrNotFound
-		}
-		r.logger.Error("sql.User.ByItem: error query row", zap.Error(err))
-		return err
-	}
-
-	if balance < item.Price {
-		r.logger.Error("sql.User.ByItem: insufficient funds", zap.Error(err))
-		return erorrs.ErrInsufficientFunds
-	}
-
 	res, err := tx.ExecContext(ctx,
 		`UPDATE users SET balance = balance - $1 WHERE id = $2`,
-		item.Price, userID,
+		item.Price, user.ID,
 	)
 	if err != nil {
 		r.logger.Error("sql.User.ByItem: error exec", zap.Error(err))
@@ -155,7 +135,7 @@ func (r *UserRepo) BuyItem(ctx context.Context, userID int, item domain.Item) er
         VALUES ($1, $2, $3, 1)
         ON CONFLICT (user_id, item_id) 
         DO UPDATE SET quantity = purchases.quantity + 1`,
-		userID, item.ID, item.Name,
+		user.ID, item.ID, item.Name,
 	)
 	if err != nil {
 		r.logger.Error("sql.User.ByItem: error exec", zap.Error(err))
@@ -206,6 +186,10 @@ func (r *UserRepo) GetUser(ctx context.Context, userID int) (domain.User, error)
 	).Scan(&user.ID, &user.Username, &user.Coins)
 
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			r.logger.Error("sql.User.GetUser: user not found", zap.Error(err))
+			return domain.User{}, erorrs.ErrNotFound
+		}
 		r.logger.Error("sql.User.GetUser: error query", zap.Error(err))
 		return user, err
 	}
