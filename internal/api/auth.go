@@ -49,5 +49,7 @@ func (r *Api) Auth(c *gin.Context) {
 		return
 	}
 
+	c.Header("Authorization", "Bearer "+token)
+
 	c.JSON(http.StatusOK, model.AuthResponseDTO{token})
 }

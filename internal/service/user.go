@@ -42,6 +42,7 @@ func (s *UserService) SendCoinToUser(ctx context.Context, fromUserID int, toUser
 	}
 
 	if fromUserID == toUserID {
+		s.logger.Error("service.User.SendCoinToUser: ", zap.Error(err))
 		return erorrs.ErrSelfTransfer
 	}
 
@@ -51,7 +52,7 @@ func (s *UserService) SendCoinToUser(ctx context.Context, fromUserID int, toUser
 			s.logger.Error("service.User.SendCoinToUser: user not found", zap.Error(err))
 			return erorrs.ErrNotFound
 		case errors.Is(err, erorrs.ErrInsufficientFunds):
-			s.logger.Error("service.User.SendCoinToUser: self transferring", zap.Error(err))
+			s.logger.Error("service.User.SendCoinToUser: money not enough", zap.Error(err))
 			return erorrs.ErrInsufficientFunds
 		default:
 			s.logger.Error("service.User.SendCoinToUser: error sending coin", zap.Error(err))
@@ -78,7 +79,7 @@ func (s *UserService) BuyItem(ctx context.Context, userID int, input model.BuyIt
 	if err := s.repo.BuyItem(ctx, userID, item); err != nil {
 		switch {
 		case errors.Is(err, erorrs.ErrNotFound):
-			s.logger.Error("service.User.BuyItem: item not found", zap.Error(err))
+			s.logger.Error("service.User.BuyItem: user not found", zap.Error(err))
 			return erorrs.ErrNotFound
 		case errors.Is(err, erorrs.ErrInsufficientFunds):
 			s.logger.Error("service.User.BuyItem: balance to buy is wrong", zap.Error(err))
