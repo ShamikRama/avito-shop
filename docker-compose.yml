@@ -1,0 +1,46 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:16
+    container_name: postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: shop
+    ports:
+      - "5432:5432"
+    networks:
+      - internal
+
+  dbTest:
+    image: postgres:16
+    container_name: postgres_test
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: shopTest
+    ports:
+      - "5433:5432"
+    networks:
+      - internal
+
+
+  avito-shop:
+    image: avitoservice:latest
+    container_name: avitoservice
+    depends_on:
+      - db
+    volumes:
+      - ./.env:/avito-shop/.env
+      - ./migrations:/avito-shop/migrations
+    environment:
+      CONFIG_PATH: /avito-shop/.env
+    ports:
+      - "8080:8080"
+    command: ["/bin/sh", "-c", "/usr/local/bin/wait-for-it db:5432 -- sleep 5 && ./avitoservice"]
+    networks:
+      - internal
+
+networks:
+  internal:
