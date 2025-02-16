@@ -50,7 +50,6 @@ func RunApp() {
 	server := config.InitHttpServer(*cfg, router)
 	logs.Info("Server initialized")
 
-	// Запуск HTTP-сервера
 	go func() {
 		logs.Info("Server staring")
 
@@ -63,6 +62,9 @@ func RunApp() {
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
 
-	db.Close()
+	err = db.Close()
+	if err != nil {
+		log.Fatalf("Database is not closed")
+	}
 	logs.Info("Database closed")
 }

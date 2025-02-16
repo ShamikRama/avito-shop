@@ -26,12 +26,12 @@ func (r *Api) Auth(c *gin.Context) {
 	err := c.ShouldBindJSON(&input)
 	if err != nil {
 		r.logger.Error("invalid request body", zap.Error(err))
-		c.JSON(http.StatusBadRequest, model.ErrorResponseDTO{"неправильное данные для ввода"})
+		c.JSON(http.StatusBadRequest, model.ErrorResponseDTO{Error: "неправильное данные для ввода"})
 		return
 	}
 
 	if input.Username == "" || input.Password == "" {
-		c.JSON(http.StatusBadRequest, model.ErrorResponseDTO{"поля имя и пароль обязательны к заполнению"})
+		c.JSON(http.StatusBadRequest, model.ErrorResponseDTO{Error: "поля имя и пароль обязательны к заполнению"})
 		return
 	}
 
@@ -39,17 +39,17 @@ func (r *Api) Auth(c *gin.Context) {
 	if err != nil {
 		switch {
 		case errors.Is(err, erorrs.ErrNotFound):
-			c.JSON(http.StatusUnauthorized, model.ErrorResponseDTO{"неправильны данные для входа"})
+			c.JSON(http.StatusUnauthorized, model.ErrorResponseDTO{Error: "неправильны данные для входа"})
 		case errors.Is(err, erorrs.ErrUserExist):
-			c.JSON(http.StatusBadRequest, model.ErrorResponseDTO{"пользователь уже существует"})
+			c.JSON(http.StatusBadRequest, model.ErrorResponseDTO{Error: "пользователь уже существует"})
 		default:
 			r.logger.Error("Authentication error", zap.Error(err))
-			c.JSON(http.StatusInternalServerError, model.ErrorResponseDTO{"внутренняя ошибка сервера"})
+			c.JSON(http.StatusInternalServerError, model.ErrorResponseDTO{Error: "внутренняя ошибка сервера"})
 		}
 		return
 	}
 
 	c.Header("Authorization", "Bearer "+token)
 
-	c.JSON(http.StatusOK, model.AuthResponseDTO{token})
+	c.JSON(http.StatusOK, token)
 }

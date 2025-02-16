@@ -15,12 +15,11 @@ const (
 	userCtx    = "user_id"
 )
 
-// здесь еще добавить проверку ттл токена
 func (r *Api) UserIdentity(c *gin.Context) {
 	header := c.GetHeader(authHeader)
 	if header == "" {
 		r.logger.Info("Empty header")
-		c.JSON(http.StatusUnauthorized, model.ErrorResponseDTO{"вы не авторизованы"})
+		c.JSON(http.StatusUnauthorized, model.ErrorResponseDTO{Error: "вы не авторизованы"})
 		c.Abort()
 		return
 	}
@@ -28,7 +27,7 @@ func (r *Api) UserIdentity(c *gin.Context) {
 	headerParts := strings.Split(header, " ")
 	if len(headerParts) != 2 || headerParts[0] != "Bearer" {
 		r.logger.Info("Wrong header")
-		c.JSON(http.StatusInternalServerError, model.ErrorResponseDTO{"вы не авторизованы"})
+		c.JSON(http.StatusInternalServerError, model.ErrorResponseDTO{Error: "вы не авторизованы"})
 		c.Abort()
 		return
 	}
@@ -36,7 +35,7 @@ func (r *Api) UserIdentity(c *gin.Context) {
 	token := headerParts[1]
 	if token == "" {
 		r.logger.Info("Empty token")
-		c.JSON(http.StatusInternalServerError, model.ErrorResponseDTO{"вы не авторизованы"})
+		c.JSON(http.StatusInternalServerError, model.ErrorResponseDTO{Error: "вы не авторизованы"})
 		c.Abort()
 		return
 	}
@@ -44,7 +43,7 @@ func (r *Api) UserIdentity(c *gin.Context) {
 	userId, err := service.ParseToken(token)
 	if err != nil {
 		r.logger.Error("Failed to parse the token")
-		c.JSON(http.StatusInternalServerError, model.ErrorResponseDTO{"вы не авторизованы"})
+		c.JSON(http.StatusInternalServerError, model.ErrorResponseDTO{Error: "вы не авторизованы"})
 		c.Abort()
 		return
 	}

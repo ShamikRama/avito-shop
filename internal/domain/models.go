@@ -1,6 +1,5 @@
 package domain
 
-// User
 type User struct {
 	ID           int
 	Username     string
@@ -8,14 +7,12 @@ type User struct {
 	Coins        int
 }
 
-// Item
 type Item struct {
 	ID    int
 	Name  string
 	Price int
 }
 
-// Inventory
 type InventoryItem struct {
 	ID       uint
 	UserID   uint
@@ -27,5 +24,4 @@ type TransferWithUsernames struct {
 	FromUser string
 	ToUser   string
 	Amount   int
-	DateTime string
 }

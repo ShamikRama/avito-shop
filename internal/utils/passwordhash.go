@@ -5,6 +5,7 @@ import (
 	"fmt"
 )
 
+// Уберу если успею
 const salt = "hjqrhjqw124617ajfhajs"
 
 func GeneratePasswordHash(password string) string {

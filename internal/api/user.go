@@ -21,7 +21,7 @@ func (r *Api) SendCoin(c *gin.Context) {
 	userId, err := getUserId(c)
 	if err != nil {
 		r.logger.Error("unidentified user")
-		c.JSON(http.StatusUnauthorized, model.ErrorResponseDTO{"пользователь не авторизован"})
+		c.JSON(http.StatusUnauthorized, model.ErrorResponseDTO{Error: "пользователь не авторизован"})
 		return
 	}
 
@@ -33,7 +33,7 @@ func (r *Api) SendCoin(c *gin.Context) {
 	err = c.ShouldBindJSON(&input)
 	if err != nil {
 		r.logger.Error("error bind json")
-		c.JSON(http.StatusBadRequest, model.ErrorResponseDTO{"неверные данные для ввода"})
+		c.JSON(http.StatusBadRequest, model.ErrorResponseDTO{Error: "неверные данные для ввода"})
 		return
 	}
 
@@ -41,13 +41,13 @@ func (r *Api) SendCoin(c *gin.Context) {
 	if err != nil {
 		switch {
 		case errors.Is(err, erorrs.ErrSelfTransfer):
-			c.JSON(http.StatusBadRequest, model.ErrorResponseDTO{"нельзя отправить самому себе"})
+			c.JSON(http.StatusBadRequest, model.ErrorResponseDTO{Error: "нельзя отправить самому себе"})
 		case errors.Is(err, erorrs.ErrNotFound):
-			c.JSON(http.StatusBadRequest, model.ErrorResponseDTO{"пользователь не найден"})
+			c.JSON(http.StatusBadRequest, model.ErrorResponseDTO{Error: "пользователь не найден"})
 		case errors.Is(err, erorrs.ErrInsufficientFunds):
-			c.JSON(http.StatusBadRequest, model.ErrorResponseDTO{"недостаточно средств"})
+			c.JSON(http.StatusBadRequest, model.ErrorResponseDTO{Error: "недостаточно средств"})
 		default:
-			c.JSON(http.StatusInternalServerError, model.ErrorResponseDTO{"внутренняя ошибка сервера"})
+			c.JSON(http.StatusInternalServerError, model.ErrorResponseDTO{Error: "внутренняя ошибка сервера"})
 		}
 		return
 	}
@@ -60,7 +60,7 @@ func (r *Api) BuyItem(c *gin.Context) {
 	userID, err := getUserId(c)
 	if err != nil {
 		r.logger.Error("unidentified user")
-		c.JSON(http.StatusUnauthorized, model.ErrorResponseDTO{"пользователь не авторизован"})
+		c.JSON(http.StatusUnauthorized, model.ErrorResponseDTO{Error: "пользователь не авторизован"})
 		return
 	}
 
@@ -72,7 +72,7 @@ func (r *Api) BuyItem(c *gin.Context) {
 	err = c.ShouldBindUri(&input)
 	if err != nil {
 		r.logger.Error("error bind json")
-		c.JSON(http.StatusBadRequest, model.ErrorResponseDTO{"неверные данные для ввода"})
+		c.JSON(http.StatusBadRequest, model.ErrorResponseDTO{Error: "неверные данные для ввода"})
 		return
 	}
 
@@ -83,11 +83,11 @@ func (r *Api) BuyItem(c *gin.Context) {
 			r.logger.Error("user not found", zap.String("item", input.Item))
 			c.JSON(http.StatusNotFound, model.ErrorResponseDTO{Error: "товар не найден"})
 		case errors.Is(err, erorrs.ErrNotFound):
-			c.JSON(http.StatusBadRequest, model.ErrorResponseDTO{"пользователь не найден"})
+			c.JSON(http.StatusBadRequest, model.ErrorResponseDTO{Error: "пользователь не найден"})
 		case errors.Is(err, erorrs.ErrInsufficientFunds):
-			c.JSON(http.StatusBadRequest, model.ErrorResponseDTO{"недостаточно средств"})
+			c.JSON(http.StatusBadRequest, model.ErrorResponseDTO{Error: "недостаточно средств"})
 		default:
-			c.JSON(http.StatusInternalServerError, model.ErrorResponseDTO{"внутренняя ошибка сервера"})
+			c.JSON(http.StatusInternalServerError, model.ErrorResponseDTO{Error: "внутренняя ошибка сервера"})
 		}
 		return
 	}

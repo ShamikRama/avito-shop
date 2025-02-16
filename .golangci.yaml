@@ -1,0 +1,20 @@
+linters:
+  enable:
+    - golint
+    - gofmt
+    - vet
+    - staticcheck
+    - unused
+    - errcheck
+
+linters-settings:
+  gofmt:
+    simplify: true
+  staticcheck:
+    checks:
+      - all
+
+issues:
+  exclude-rules:
+    - path: _test\.go
+      text: "ignore test files"

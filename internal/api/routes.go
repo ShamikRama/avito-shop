@@ -24,7 +24,7 @@ func (r *Api) InitRoutes() *gin.Engine {
 
 	api := router.Group("/api")
 	{
-		api.POST("/auth", r.Auth) // сделано
+		api.POST("/auth", r.Auth)
 
 		protected := api.Group("", r.UserIdentity)
 		{

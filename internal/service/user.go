@@ -13,11 +13,11 @@ import (
 
 //go:generate go run github.com/vektra/mockery/v2@latest --name=RepoUserInterface
 type RepoUserInterface interface {
-	BuyItem(ctx context.Context, user domain.User, item domain.Item) error // в процессе
+	BuyItem(ctx context.Context, user domain.User, item domain.Item) error
 	SendCoins(ctx context.Context, fromUserID int, toUserID int, amount int) error
-	GetItem(ctx context.Context, itemName string) (domain.Item, error) // +
+	GetItem(ctx context.Context, itemName string) (domain.Item, error)
 	GetPurchasedItems(ctx context.Context, userID int) ([]model.ItemDTO, error)
-	GetUser(ctx context.Context, userID int) (domain.User, error) // +
+	GetUser(ctx context.Context, userID int) (domain.User, error)
 	GetUserByName(ctx context.Context, toUser string) (int, error)
 	GetCoinHistory(ctx context.Context, userID int, currentUsername string) (model.CoinHistoryDTO, error)
 }

@@ -10,16 +10,14 @@ type HttpServer struct {
 }
 
 func InitHttpServer(cfg Config, router http.Handler) *HttpServer {
-	srv := http.Server{
-		Addr:         cfg.Address,
-		Handler:      router,
-		ReadTimeout:  cfg.HTTPServer.Timeout * time.Second,
-		WriteTimeout: cfg.HTTPServer.Timeout * time.Second,
-		IdleTimeout:  cfg.HTTPServer.IdleTimeout * time.Second,
-	}
-
 	return &HttpServer{
-		server: srv,
+		server: http.Server{
+			Addr:         cfg.Address,
+			Handler:      router,
+			ReadTimeout:  cfg.HTTPServer.Timeout * time.Second,
+			WriteTimeout: cfg.HTTPServer.Timeout * time.Second,
+			IdleTimeout:  cfg.HTTPServer.IdleTimeout * time.Second,
+		},
 	}
 }
 

@@ -5,10 +5,6 @@ type AuthRequestDTO struct {
 	Password string `json:"password" binding:"required"`
 }
 
-type AuthResponseDTO struct {
-	Token string `json:"token"`
-}
-
 type SendCoinRequestDTO struct {
 	ToUser string `json:"toUser" binding:"required"`
 	Amount int    `json:"amount" binding:"required,gt=0"`
@@ -20,8 +16,8 @@ type ItemDTO struct {
 }
 
 type TransactionHistoryDTO struct {
-	FromUser string `json:"fromUser"`
-	ToUser   string `json:"toUser"`
+	FromUser string `json:"fromUser,omitempty"`
+	ToUser   string `json:"toUser,omitempty"`
 	Amount   int    `json:"amount"`
 }
 

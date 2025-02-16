@@ -1,3 +1,6 @@
+//go:build integration
+// +build integration
+
 package integrations
 
 import (
@@ -8,6 +11,7 @@ import (
 	"avito-shop/internal/service"
 	"context"
 	"database/sql"
+	"fmt"
 	"github.com/pressly/goose"
 	"github.com/stretchr/testify/suite"
 	"log"
@@ -35,23 +39,37 @@ func (s *IntegrationTestSuite) SetupSuite() {
 		log.Fatalf("Unable to reach database: %v", err)
 	}
 
-	goose.SetDialect("postgres")
+	err = goose.SetDialect("postgres")
+	if err != nil {
+		fmt.Println("goose dialect is not set")
+	}
 
-	goose.Up(db, "../../migrations")
+	err = goose.Up(db, "../../migrations")
+	if err != nil {
+		fmt.Println("migrations for test db is not up")
+	}
 
 	s.db = db
 }
 
 func (s *IntegrationTestSuite) TearDownSuite() {
-	defer s.db.Close()
-	goose.Reset(s.db, "../../migrations")
+	err := goose.Reset(s.db, "../../migrations")
+	if err != nil {
+		fmt.Println("migrations test db did not reset")
+	}
+
+	err = s.db.Close()
+	if err != nil {
+		fmt.Println("test db is not closed")
+	}
 }
 
 func (s *IntegrationTestSuite) TearDownTest() {
 	_, err := s.db.Exec(`TRUNCATE TABLE 
             users, 
             items, 
-            purchases 
+            purchases,
+    		transfers
         RESTART IDENTITY CASCADE`)
 	if err != nil {
 		s.FailNow("Failed to clean tables", err.Error())
@@ -199,4 +217,19 @@ func (s *IntegrationTestSuite) TestBuyItem_UserNotFound() {
 	).Scan(&purchaseCount)
 	s.Require().NoError(err)
 	s.Require().Equal(0, purchaseCount)
+}
+
+func (s *IntegrationTestSuite) TestSendCoinToUser_InsufficientFunds() {
+	fromUserID := s.saveTestUser(domain.User{
+		Username:     "poor_sender",
+		PasswordHash: "poor_pass",
+	})
+
+	toUserID := s.saveTestUser(domain.User{
+		Username:     "rich_receiver",
+		PasswordHash: "rich_pass",
+	})
+
+	err := s.repo.SendCoins(context.Background(), fromUserID, toUserID, 1500)
+	s.Require().ErrorIs(err, erorrs.ErrInsufficientFunds)
 }
